@@ -1,0 +1,60 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.history/
+.svn/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+# Uncomment to ignore all VS Code settings
+# .vscode/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+**/build/
+**/doc/api/
+**/coverage/
+.flutter-plugins-dependencies
+
+# Flutter generated files
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+
+# Android local configuration
+/android/local.properties
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# iOS generated files
+**/ios/Flutter/ephemeral/
+
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Widget Preview
+.widget_preview/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
