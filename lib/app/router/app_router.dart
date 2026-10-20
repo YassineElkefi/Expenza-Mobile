@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'app_shell.dart';
+
+final appRouter = GoRouter(
+  initialLocation: '/dashboard',
+  routes: [
+    ShellRoute(
+      builder: (context, state, child) {
+        return AppShell(child: child);
+      },
+      routes: [
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) => const PlaceholderPage(
+            title: 'Dashboard',
+            description: 'Your financial overview will appear here.',
+            icon: Icons.dashboard_outlined,
+          ),
+        ),
+        GoRoute(
+          path: '/accounts',
+          builder: (context, state) => const PlaceholderPage(
+            title: 'Accounts',
+            description: 'Manage your bank and cash accounts.',
+            icon: Icons.account_balance_wallet_outlined,
+          ),
+        ),
+        GoRoute(
+          path: '/transactions',
+          builder: (context, state) => const PlaceholderPage(
+            title: 'Transactions',
+            description: 'Track your income, expenses, and transfers.',
+            icon: Icons.swap_vert_rounded,
+          ),
+        ),
+        GoRoute(
+          path: '/installments',
+          builder: (context, state) => const PlaceholderPage(
+            title: 'Installments',
+            description: 'Track purchases and upcoming payments.',
+            icon: Icons.payments_outlined,
+          ),
+        ),
+      ],
+    ),
+  ],
+);
+
+class PlaceholderPage extends StatelessWidget {
+  const PlaceholderPage({
+    required this.title,
+    required this.description,
+    required this.icon,
+    super.key,
+  });
+
+  final String title;
+  final String description;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 42, color: colors.primary),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
