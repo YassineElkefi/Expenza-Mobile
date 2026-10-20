@@ -1,4 +1,5 @@
 import 'package:expenza_flutter/features/transactions/presentation/add_transaction_dialog.dart';
+import 'package:expenza_flutter/features/transactions/presentation/transfer_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,10 @@ class TransactionsPage extends ConsumerWidget {
       context: context,
       builder: (_) => const AddTransactionDialog(),
     );
+  }
+
+  void _showTransferDialog(BuildContext context) {
+    showDialog<void>(context: context, builder: (_) => const TransferDialog());
   }
 
   @override
@@ -38,13 +43,24 @@ class TransactionsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () => _showAddTransactionDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Add transaction'),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showTransferDialog(context),
+                    icon: const Icon(Icons.swap_horiz),
+                    label: const Text('Transfer'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => _showAddTransactionDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add transaction'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Expanded(
