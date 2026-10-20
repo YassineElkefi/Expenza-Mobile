@@ -1,4 +1,5 @@
 import 'package:expenza_flutter/features/accounts/presentation/accounts_page.dart';
+import 'package:expenza_flutter/features/dashboard/presentation/dashboard_page.dart';
 import 'package:expenza_flutter/features/transactions/presentation/transactions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -15,11 +16,7 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: '/dashboard',
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Dashboard',
-            description: 'Your financial overview will appear here.',
-            icon: Icons.dashboard_outlined,
-          ),
+          builder: (context, state) => const DashboardPage(),
         ),
         GoRoute(
           path: '/accounts',
