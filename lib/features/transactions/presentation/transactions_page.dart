@@ -7,10 +7,30 @@ import 'package:intl/intl.dart';
 
 import '../data/transactions_providers.dart';
 
+import 'package:expenza_flutter/features/accounts/data/accounts_providers.dart';
+
 import 'package:expenza_flutter/features/transactions/presentation/edit_transaction_dialog.dart';
 
-class TransactionsPage extends ConsumerWidget {
+class TransactionsPage extends ConsumerStatefulWidget {
   const TransactionsPage({super.key});
+
+  @override
+  ConsumerState<TransactionsPage> createState() => _TransactionsPageState();
+}
+
+class _TransactionsPageState extends ConsumerState<TransactionsPage> {
+  final TextEditingController _searchController = TextEditingController();
+
+  String _selectedType = 'all';
+  String? _selectedAccountId;
+  String? _selectedCategory;
+  String _selectedPeriod = 'all';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _showAddTransactionDialog(BuildContext context) {
     showDialog<void>(
@@ -31,6 +51,68 @@ class TransactionsPage extends ConsumerWidget {
       context: context,
       builder: (_) => EditTransactionDialog(transaction: transaction),
     );
+  }
+
+  List<Transaction> _filterTransactions(List<Transaction> transactions) {
+    final now = DateTime.now();
+    final monthStart = DateTime(now.year, now.month);
+    final nextMonthStart = DateTime(now.year, now.month + 1);
+    final lastMonthStart = DateTime(now.year, now.month - 1);
+    final query = _searchController.text.trim().toLowerCase();
+
+    return transactions.where((transaction) {
+      // Search description and category.
+      final matchesSearch =
+          (transaction.description ?? '').toLowerCase().contains(query) ||
+          (transaction.category ?? '').toLowerCase().contains(query);
+
+      // Filter by transaction type.
+      final type = transaction.transactionType;
+      final matchesType = switch (_selectedType) {
+        'income' => type == 'income',
+        'expense' => type == 'expense',
+        'transfer' => type == 'transfer_in' || type == 'transfer_out',
+        _ => true,
+      };
+
+      // Filter by account.
+      final matchesAccount =
+          _selectedAccountId == null ||
+          transaction.accountId == _selectedAccountId;
+
+      // Filter by category.
+      final matchesCategory =
+          _selectedCategory == null ||
+          transaction.category == _selectedCategory;
+
+      // Filter by date.
+      final date = transaction.transactionDate;
+      final matchesPeriod = switch (_selectedPeriod) {
+        'thisMonth' =>
+          !date.isBefore(monthStart) && date.isBefore(nextMonthStart),
+        'lastMonth' =>
+          !date.isBefore(lastMonthStart) && date.isBefore(monthStart),
+        _ => true,
+      };
+
+      return matchesSearch &&
+          matchesType &&
+          matchesAccount &&
+          matchesCategory &&
+          matchesPeriod;
+    }).toList();
+  }
+
+  List<String> _getCategories(List<Transaction> transactions) {
+    final categories = transactions
+        .map((transaction) => transaction.category)
+        .whereType<String>()
+        .where((category) => category.trim().isNotEmpty)
+        .toSet()
+        .toList();
+
+    categories.sort();
+    return categories;
   }
 
   Future<void> _confirmDeleteTransaction(
@@ -85,8 +167,9 @@ class TransactionsPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final transactionsAsync = ref.watch(transactionsProvider);
+    final accountsAsync = ref.watch(accountsProvider);
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -105,8 +188,165 @@ class TransactionsPage extends ConsumerWidget {
               'Track your income, expenses, and transfers.',
               style: TextStyle(color: colors.onSurfaceVariant),
             ),
-            const SizedBox(height: 24),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 20),
+
+            TextField(
+              controller: _searchController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Search description or category...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                        },
+                      ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: 170,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedType,
+                    decoration: const InputDecoration(
+                      labelText: 'Type',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All types')),
+                      DropdownMenuItem(value: 'income', child: Text('Income')),
+                      DropdownMenuItem(
+                        value: 'expense',
+                        child: Text('Expenses'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'transfer',
+                        child: Text('Transfers'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedType = value);
+                      }
+                    },
+                  ),
+                ),
+
+                SizedBox(
+                  width: 170,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedPeriod,
+                    decoration: const InputDecoration(
+                      labelText: 'Period',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'all', child: Text('All time')),
+                      DropdownMenuItem(
+                        value: 'thisMonth',
+                        child: Text('This month'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'lastMonth',
+                        child: Text('Last month'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedPeriod = value);
+                      }
+                    },
+                  ),
+                ),
+
+                SizedBox(
+                  width: 200,
+                  child: accountsAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => const Text('Could not load accounts'),
+                    data: (accounts) => DropdownButtonFormField<String>(
+                      initialValue: _selectedAccountId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Account',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All accounts'),
+                        ),
+                        ...accounts.map(
+                          (account) => DropdownMenuItem<String>(
+                            value: account.id,
+                            child: Text(
+                              account.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() => _selectedAccountId = value);
+                      },
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: transactionsAsync.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (_, _) => const Text('Could not load categories'),
+                    data: (transactions) {
+                      final categories = _getCategories(transactions);
+
+                      return DropdownButtonFormField<String>(
+                        initialValue: _selectedCategory,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: null,
+                            child: Text('All categories'),
+                          ),
+                          ...categories.map(
+                            (category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(
+                                category,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          setState(() => _selectedCategory = value);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
             Row(
               children: [
                 Expanded(
@@ -133,29 +373,43 @@ class TransactionsPage extends ConsumerWidget {
                 error: (error, stackTrace) =>
                     Center(child: Text('Failed to load transactions: $error')),
                 data: (transactions) {
-                  if (transactions.isEmpty) {
+                  final categories =
+                      transactions
+                          .map((transaction) => transaction.category)
+                          .whereType<String>()
+                          .where((category) => category.trim().isNotEmpty)
+                          .toSet()
+                          .toList()
+                        ..sort();
+
+                  final filteredTransactions = _filterTransactions(
+                    transactions,
+                  );
+
+                  if (filteredTransactions.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 48,
-                            color: colors.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 16),
+                          const Icon(Icons.search_off, size: 48),
+                          const SizedBox(height: 12),
                           const Text(
-                            'No transactions yet',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            'No matching transactions',
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Your income and expenses will appear here.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: colors.onSurfaceVariant),
+                          const Text('Try changing your search or filters.'),
+                          TextButton(
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _selectedType = 'all';
+                                _selectedAccountId = null;
+                                _selectedCategory = null;
+                                _selectedPeriod = 'all';
+                              });
+                            },
+                            child: const Text('Clear all filters'),
                           ),
                         ],
                       ),
@@ -163,10 +417,10 @@ class TransactionsPage extends ConsumerWidget {
                   }
 
                   return ListView.separated(
-                    itemCount: transactions.length,
+                    itemCount: filteredTransactions.length,
                     separatorBuilder: (_, index) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
-                      final transaction = transactions[index];
+                      final transaction = filteredTransactions[index];
                       final isIncome =
                           transaction.transactionType == 'income' ||
                           transaction.transactionType == 'transfer_in';
