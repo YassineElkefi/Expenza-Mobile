@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/accounts_providers.dart';
-
 import 'package:intl/intl.dart';
+
+import '../data/account_balances_provider.dart';
 
 import 'add_account_dialog.dart';
 
@@ -19,7 +19,7 @@ class AccountsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountsAsync = ref.watch(accountsProvider);
+    final accountsAsync = ref.watch(accountBalancesProvider);
     final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -88,7 +88,9 @@ class AccountsPage extends ConsumerWidget {
                     itemCount: accounts.length,
                     separatorBuilder: (_, index) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
-                      final account = accounts[index];
+                      final item = accounts[index];
+                      final account = item.account;
+                      final balance = item.balanceMillimes;
 
                       return Card(
                         child: ListTile(
@@ -96,9 +98,14 @@ class AccountsPage extends ConsumerWidget {
                             Icons.account_balance_wallet_outlined,
                           ),
                           title: Text(account.name),
-                          subtitle: Text(
-                            '${account.accountType} · Opening balance: '
-                            '${NumberFormat.currency(locale: 'en', symbol: 'TND ', decimalDigits: 3).format(account.openingBalanceMillimes / 1000)}',
+                          subtitle: Text(account.accountType),
+                          trailing: Text(
+                            NumberFormat.currency(
+                              locale: 'en',
+                              symbol: 'TND ',
+                              decimalDigits: 3,
+                            ).format(balance / 1000),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
                       );

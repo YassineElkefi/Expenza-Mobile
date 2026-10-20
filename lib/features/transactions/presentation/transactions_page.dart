@@ -1,0 +1,143 @@
+import 'package:expenza_flutter/features/transactions/presentation/add_transaction_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../data/transactions_providers.dart';
+
+class TransactionsPage extends ConsumerWidget {
+  const TransactionsPage({super.key});
+
+  void _showAddTransactionDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const AddTransactionDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(transactionsProvider);
+    final colors = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Transactions',
+              style: Theme.of(context).textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Track your income, expenses, and transfers.',
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: () => _showAddTransactionDialog(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Add transaction'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: transactionsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) =>
+                    Center(child: Text('Failed to load transactions: $error')),
+                data: (transactions) {
+                  if (transactions.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 48,
+                            color: colors.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No transactions yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Your income and expenses will appear here.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    itemCount: transactions.length,
+                    separatorBuilder: (_, index) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final transaction = transactions[index];
+                      final isIncome =
+                          transaction.transactionType == 'income' ||
+                          transaction.transactionType == 'transfer_in';
+
+                      final amount = NumberFormat.currency(
+                        locale: 'en',
+                        symbol: 'TND ',
+                        decimalDigits: 3,
+                      ).format(transaction.amountMillimes / 1000);
+
+                      return Card(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isIncome
+                                ? colors.primaryContainer
+                                : colors.errorContainer,
+                            child: Icon(
+                              isIncome
+                                  ? Icons.arrow_downward_rounded
+                                  : Icons.arrow_upward_rounded,
+                              color: isIncome
+                                  ? colors.onPrimaryContainer
+                                  : colors.onErrorContainer,
+                            ),
+                          ),
+                          title: Text(
+                            (transaction.description?.isNotEmpty ?? false)
+                                ? transaction.description!
+                                : transaction.category ?? 'Transaction',
+                          ),
+                          subtitle: Text(
+                            '${transaction.transactionType} · '
+                            '${DateFormat.yMMMd().format(transaction.transactionDate)}',
+                          ),
+                          trailing: Text(
+                            '${isIncome ? '+' : '-'}$amount',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: isIncome ? colors.primary : colors.error,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

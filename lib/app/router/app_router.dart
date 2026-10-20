@@ -1,4 +1,5 @@
 import 'package:expenza_flutter/features/accounts/presentation/accounts_page.dart';
+import 'package:expenza_flutter/features/transactions/presentation/transactions_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -26,11 +27,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/transactions',
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Transactions',
-            description: 'Track your income, expenses, and transfers.',
-            icon: Icons.swap_vert_rounded,
-          ),
+          builder: (context, state) => const TransactionsPage(),
         ),
         GoRoute(
           path: '/installments',
