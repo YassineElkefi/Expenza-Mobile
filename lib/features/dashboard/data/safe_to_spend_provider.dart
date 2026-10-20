@@ -1,3 +1,4 @@
+import 'package:expenza_flutter/features/installments/data/installment_payments_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/database/database_provider.dart';
@@ -25,7 +26,7 @@ final safeToSpendProvider = FutureProvider<SafeToSpendSummary>((ref) async {
   final database = ref.watch(databaseProvider);
   final accounts = await database.select(database.accounts).get();
   final transactions = await database.select(database.transactions).get();
-  final payments = await database.select(database.installmentPayments).get();
+  final payments = await ref.watch(installmentPaymentsProvider.future);
 
   var totalBalanceMillimes = 0;
 

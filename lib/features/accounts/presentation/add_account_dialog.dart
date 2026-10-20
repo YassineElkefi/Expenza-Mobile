@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/accounts_providers.dart';
 
@@ -37,11 +38,11 @@ class _AddAccountDialogState extends ConsumerState<AddAccountDialog> {
 
       // TND has three decimal places; store the amount as integer millimes.
       final balanceMillimes = (balance * 1000).round();
-
+      final id = const Uuid().v4();
       await ref
           .read(accountsRepositoryProvider)
           .add(
-            id: DateTime.now().microsecondsSinceEpoch.toString(),
+            id: id,
             name: _nameController.text.trim(),
             accountType: _accountType,
             openingBalanceMillimes: balanceMillimes,
