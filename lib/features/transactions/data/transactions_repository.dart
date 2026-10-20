@@ -86,6 +86,91 @@ class TransactionsRepository {
         );
   }
 
+  Future<void> update({
+    required String id,
+    required String accountId,
+    required String transactionType,
+    required int amountMillimes,
+    required DateTime transactionDate,
+    String? category,
+    String? description,
+  }) async {
+    if (amountMillimes <= 0) {
+      throw ArgumentError('Amount must be greater than zero.');
+    }
+
+    if (transactionType != 'income' && transactionType != 'expense') {
+      throw ArgumentError(
+        'Only income and expense transactions can be edited.',
+      );
+    }
+
+    await _database.transaction(() async {
+      final existing = await (_database.select(
+        _database.transactions,
+      )..where((row) => row.id.equals(id))).getSingleOrNull();
+
+      if (existing == null) {
+        throw StateError('Transaction was not found.');
+      }
+
+      if (existing.transferId != null) {
+        throw StateError('Transfers cannot be edited this way.');
+      }
+
+      final account = await (_database.select(
+        _database.accounts,
+      )..where((row) => row.id.equals(accountId))).getSingleOrNull();
+
+      if (account == null) {
+        throw StateError('Account was not found.');
+      }
+
+      if (transactionType == 'expense') {
+        final transactions = await (_database.select(
+          _database.transactions,
+        )..where((row) => row.accountId.equals(accountId))).get();
+
+        var balance = account.openingBalanceMillimes;
+
+        for (final transaction in transactions) {
+          if (transaction.id == id) continue;
+
+          switch (transaction.transactionType) {
+            case 'income':
+            case 'transfer_in':
+              balance += transaction.amountMillimes;
+              break;
+            case 'expense':
+            case 'transfer_out':
+              balance -= transaction.amountMillimes;
+              break;
+          }
+        }
+
+        if (balance < amountMillimes) {
+          throw StateError(
+            'Insufficient funds. Available balance: '
+            '${(balance / 1000).toStringAsFixed(3)} TND.',
+          );
+        }
+      }
+
+      await (_database.update(
+        _database.transactions,
+      )..where((row) => row.id.equals(id))).write(
+        TransactionsCompanion(
+          accountId: Value(accountId),
+          transactionType: Value(transactionType),
+          amountMillimes: Value(amountMillimes),
+          transactionDate: Value(transactionDate),
+          category: Value(category),
+          description: Value(description),
+        ),
+      );
+    });
+  }
+
   Future<void> delete(String id) async {
     await _database.transaction(() async {
       final transaction = await (_database.select(

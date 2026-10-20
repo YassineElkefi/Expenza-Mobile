@@ -1,3 +1,4 @@
+import 'package:expenza_flutter/core/database/app_database.dart';
 import 'package:expenza_flutter/features/transactions/presentation/add_transaction_dialog.dart';
 import 'package:expenza_flutter/features/transactions/presentation/transfer_dialog.dart';
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../data/transactions_providers.dart';
+
+import 'package:expenza_flutter/features/transactions/presentation/edit_transaction_dialog.dart';
 
 class TransactionsPage extends ConsumerWidget {
   const TransactionsPage({super.key});
@@ -18,6 +21,16 @@ class TransactionsPage extends ConsumerWidget {
 
   void _showTransferDialog(BuildContext context) {
     showDialog<void>(context: context, builder: (_) => const TransferDialog());
+  }
+
+  void _showEditTransactionDialog(
+    BuildContext context,
+    Transaction transaction,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => EditTransactionDialog(transaction: transaction),
+    );
   }
 
   Future<void> _confirmDeleteTransaction(
@@ -201,6 +214,16 @@ class TransactionsPage extends ConsumerWidget {
                                       : colors.error,
                                 ),
                               ),
+                              if (transaction.transactionType == 'income' ||
+                                  transaction.transactionType == 'expense')
+                                IconButton(
+                                  tooltip: 'Edit transaction',
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _showEditTransactionDialog(
+                                    context,
+                                    transaction,
+                                  ),
+                                ),
                               IconButton(
                                 tooltip: 'Delete transaction',
                                 icon: const Icon(Icons.delete_outline),
