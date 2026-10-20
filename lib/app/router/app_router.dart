@@ -1,3 +1,4 @@
+import 'package:expenza_flutter/features/accounts/presentation/accounts_page.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,11 +22,7 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/accounts',
-          builder: (context, state) => const PlaceholderPage(
-            title: 'Accounts',
-            description: 'Manage your bank and cash accounts.',
-            icon: Icons.account_balance_wallet_outlined,
-          ),
+          builder: (context, state) => const AccountsPage(),
         ),
         GoRoute(
           path: '/transactions',
