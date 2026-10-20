@@ -20,6 +20,57 @@ class TransactionsPage extends ConsumerWidget {
     showDialog<void>(context: context, builder: (_) => const TransferDialog());
   }
 
+  Future<void> _confirmDeleteTransaction(
+    BuildContext context,
+    WidgetRef ref,
+    String transactionId,
+    String transactionType,
+    String? transferId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          transferId != null ? 'Delete transfer?' : 'Delete transaction?',
+        ),
+        content: Text(
+          transferId != null
+              ? 'Both sides of this transfer will be deleted, and both account balances will be updated. This cannot be undone.'
+              : 'This transaction will be permanently deleted, and the account balance will be updated. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref.read(transactionsRepositoryProvider).delete(transactionId);
+
+      ref.invalidate(transactionsProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Transaction deleted')));
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete transaction: $error')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(transactionsProvider);
@@ -137,12 +188,31 @@ class TransactionsPage extends ConsumerWidget {
                             '${transaction.transactionType} · '
                             '${DateFormat.yMMMd().format(transaction.transactionDate)}',
                           ),
-                          trailing: Text(
-                            '${isIncome ? '+' : '-'}$amount',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: isIncome ? colors.primary : colors.error,
-                            ),
+
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${isIncome ? '+' : '-'}$amount',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: isIncome
+                                      ? colors.primary
+                                      : colors.error,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'Delete transaction',
+                                icon: const Icon(Icons.delete_outline),
+                                onPressed: () => _confirmDeleteTransaction(
+                                  context,
+                                  ref,
+                                  transaction.id,
+                                  transaction.transactionType,
+                                  transaction.transferId,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

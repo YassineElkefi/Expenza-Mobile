@@ -87,9 +87,25 @@ class TransactionsRepository {
   }
 
   Future<void> delete(String id) async {
-    await (_database.delete(
-      _database.transactions,
-    )..where((transaction) => transaction.id.equals(id))).go();
+    await _database.transaction(() async {
+      final transaction = await (_database.select(
+        _database.transactions,
+      )..where((row) => row.id.equals(id))).getSingleOrNull();
+
+      if (transaction == null) return;
+
+      final transferId = transaction.transferId;
+
+      if (transferId != null) {
+        await (_database.delete(
+          _database.transactions,
+        )..where((row) => row.transferId.equals(transferId))).go();
+      } else {
+        await (_database.delete(
+          _database.transactions,
+        )..where((row) => row.id.equals(id))).go();
+      }
+    });
   }
 
   Future<void> transfer({
