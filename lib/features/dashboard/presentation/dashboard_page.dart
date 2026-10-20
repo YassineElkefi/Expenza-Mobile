@@ -1,3 +1,4 @@
+import 'package:expenza_flutter/features/dashboard/data/safe_to_spend_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,104 @@ import '../../transactions/data/transactions_providers.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import 'package:go_router/go_router.dart';
+
+class SafeToSpendCard extends ConsumerWidget {
+  const SafeToSpendCard({super.key});
+
+  String _formatMoney(int millimes) {
+    return '${NumberFormat('#,##0.000').format(millimes / 1000)} TND';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(safeToSpendProvider);
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: summaryAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Row(
+            children: [
+              const Expanded(child: Text('Could not load Safe-to-Spend')),
+              IconButton(
+                onPressed: () => ref.invalidate(safeToSpendProvider),
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Retry',
+              ),
+            ],
+          ),
+          data: (summary) {
+            final safeToSpend = summary.safeToSpendMillimes;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Safe to Spend', style: theme.textTheme.titleMedium),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  _formatMoney(safeToSpend),
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: safeToSpend < 0
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                _SafeToSpendRow(
+                  label: 'Current balance',
+                  amount: _formatMoney(summary.currentBalanceMillimes),
+                ),
+                const SizedBox(height: 8),
+                _SafeToSpendRow(
+                  label: 'Reserved for installments',
+                  amount: _formatMoney(summary.reservedInstallmentsMillimes),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Includes overdue unpaid installments and '
+                  'payments due within the next 30 days.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SafeToSpendRow extends StatelessWidget {
+  const _SafeToSpendRow({required this.label, required this.amount});
+
+  final String label;
+  final String amount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        const SizedBox(width: 8),
+        Text(amount, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -35,6 +134,7 @@ class DashboardPage extends ConsumerWidget {
             ref.invalidate(dashboardSummaryProvider);
             ref.invalidate(transactionsProvider);
             ref.invalidate(accountBalancesProvider);
+            ref.invalidate(safeToSpendProvider);
           },
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -108,6 +208,8 @@ class DashboardPage extends ConsumerWidget {
                         color: colors.primary,
                         emphasized: true,
                       ),
+                      const SafeToSpendCard(),
+                      const SizedBox(height: 16),
                       const SizedBox(height: 12),
                       Row(
                         children: [
